@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel of Names - Undian</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .wheel-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            margin: 30px auto;
+        }
+
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 25px solid transparent;
+            border-right: 25px solid transparent;
+            border-top: 50px solid #ff4757;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
+            z-index: 10;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            border: 5px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .spin-button {
+            display: block;
+            width: 200px;
+            margin: 30px auto;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            min-height: 50px; /* Touch-friendly */
+            touch-action: manipulation;
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .spin-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .winner-display {
+            text-align: center;
+            margin-top: 20px;
+            min-height: 80px;
+        }
+
+        .winner-text {
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
+            animation: bounceIn 0.6s;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], textarea {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.3s;
+            resize: vertical;
+            min-height: 44px;
+            max-height: 200px;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            min-height: 44px; /* Touch-friendly */
+            touch-action: manipulation; /* Prevent zoom on double-tap */
+        }
+
+        .add-button:hover {
+            background: #5568d3;
+        }
+
+        .add-button:active {
+            transform: scale(0.98);
+        }
+
+        .names-list {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        .name-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            transition: background 0.3s, transform 0.2s;
+            cursor: move;
+            user-select: none;
+            min-height: 44px; /* Touch-friendly */
+            touch-action: none; /* Important for drag on touch devices */
+        }
+
+        .name-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .name-item:active {
+            background: #dee2e6;
+        }
+
+        .name-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+            background: #667eea;
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .name-item.drag-over {
+            border-top: 3px solid #667eea;
+            margin-top: 8px;
+        }
+
+        .drag-handle {
+            font-size: 1.2em;
+            line-height: 1;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .name-item:hover .drag-handle {
+            opacity: 1;
+        }
+
+        .name-item.winner-position {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .name-text {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .name-number {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .name-item.winner-position .name-number {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .remove-button {
+            padding: 6px 12px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.3s, transform 0.1s;
+            min-height: 32px; /* Touch-friendly */
+            min-width: 60px;
+            touch-action: manipulation;
+        }
+
+        .remove-button:hover {
+            background: #ee5a6f;
+        }
+
+        .remove-button:active {
+            transform: scale(0.95);
+        }
+
+        .clear-all {
+            width: 100%;
+            padding: 12px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: background 0.3s, transform 0.1s;
+            min-height: 44px; /* Touch-friendly */
+            touch-action: manipulation;
+        }
+
+        .clear-all:hover {
+            background: #ee5a6f;
+        }
+
+        .clear-all:active {
+            transform: scale(0.98);
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .info-box strong {
+            color: #1976D2;
+        }
+
+        .winner-history {
+            margin-top: 30px;
+        }
+
+        .history-item {
+            padding: 10px 15px;
+            background: #f1f3f5;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f0f;
+            position: absolute;
+            animation: confetti-fall 3s linear;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Tablet & Mobile Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .wheel-container {
+                width: 100%;
+                max-width: 500px;
+                height: auto;
+                aspect-ratio: 1;
+            }
+        }
+
+        /* Mobile Specific */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                gap: 15px;
+            }
+
+            .wheel-section {
+                padding: 20px 15px;
+            }
+
+            .controls-section {
+                padding: 20px 15px;
+                max-height: none;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 15px;
+            }
+
+            .wheel-container {
+                width: 100%;
+                max-width: 350px;
+                margin: 20px auto;
+            }
+
+            .pointer {
+                top: -15px;
+                border-left: 20px solid transparent;
+                border-right: 20px solid transparent;
+                border-top: 40px solid #ff4757;
+            }
+
+            .center-circle {
+                width: 60px;
+                height: 60px;
+                font-size: 0.85em;
+            }
+
+            .spin-button {
+                width: 100%;
+                max-width: 300px;
+                padding: 12px 25px;
+                font-size: 1.1em;
+                margin: 20px auto;
+            }
+
+            .winner-display {
+                min-height: 60px;
+            }
+
+            .winner-text {
+                font-size: 1.4em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            textarea {
+                min-height: 50px;
+            }
+
+            .add-button {
+                width: 100%;
+                padding: 14px;
+                font-size: 1.05em;
+            }
+
+            .info-box {
+                font-size: 0.85em;
+                padding: 12px;
+            }
+
+            .names-list {
+                max-height: 300px;
+            }
+
+            .name-item {
+                padding: 10px 12px;
+                font-size: 0.95em;
+            }
+
+            .name-number {
+                padding: 3px 8px;
+                font-size: 0.8em;
+            }
+
+            .name-text {
+                font-size: 0.95em;
+            }
+
+            .remove-button {
+                padding: 5px 10px;
+                font-size: 0.8em;
+            }
+
+            .clear-all {
+                padding: 12px;
+                font-size: 0.95em;
+            }
+
+            .stats {
+                gap: 10px;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            .stat-number {
+                font-size: 1.6em;
+            }
+
+            .stat-label {
+                font-size: 0.8em;
+            }
+
+            .history-item {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+        }
+
+        /* Small Mobile */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .wheel-container {
+                max-width: 280px;
+            }
+
+            .spin-button {
+                font-size: 1em;
+                padding: 10px 20px;
+            }
+
+            .winner-text {
+                font-size: 1.2em;
+            }
+
+            h2 {
+                font-size: 1.15em;
+            }
+
+            .name-item {
+                padding: 8px 10px;
+            }
+
+            .drag-handle {
+                font-size: 1em;
+                margin-right: 5px;
+            }
+
+            .info-box {
+                font-size: 0.8em;
+            }
+        }
+
+        /* Landscape Mobile */
+        @media (max-width: 896px) and (orientation: landscape) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .wheel-container {
+                max-width: 300px;
+            }
+
+            .controls-section {
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        /* Selection Modal */
+        .selection-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+
+        .selection-modal.hidden {
+            display: none;
+        }
+
+        .selection-content {
+            background: white;
+            border-radius: 30px;
+            padding: 50px 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.4s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .selection-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .selection-subtitle {
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .selection-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .selection-button {
+            padding: 30px 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .selection-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .selection-button:active {
+            transform: translateY(-2px);
+        }
+
+        .selection-button.position-2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .selection-button.position-4 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .selection-number {
+            font-size: 2.5em;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .selection-label {
+            font-size: 0.7em;
+            opacity: 0.9;
+        }
+
+        /* Mobile responsive untuk modal */
+        @media (max-width: 768px) {
+            .selection-content {
+                padding: 40px 30px;
+            }
+
+            .selection-title {
+                font-size: 1.5em;
+            }
+
+            .selection-subtitle {
+                font-size: 0.9em;
+                margin-bottom: 30px;
+            }
+
+            .selection-buttons {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .selection-button {
+                padding: 25px 20px;
+                font-size: 1.1em;
+            }
+
+            .selection-number {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Selection Modal -->
+    <div class="selection-modal" id="selectionModal">
+        <div class="selection-content">
+            <div class="selection-title">🎯 Pilih Posisi Pemenang</div>
+            <div class="selection-subtitle">
+                Pilih posisi mana yang akan selalu menang dalam undian ini.<br>
+                Anda bisa mengatur urutan nama dengan drag & drop nanti.
+            </div>
+            <div class="selection-buttons">
+                <button class="selection-button position-2" onclick="selectPosition(2)">
+                    <span class="selection-number">#2</span>
+                    <span class="selection-label">Posisi Kedua</span>
+                </button>
+                <button class="selection-button position-4" onclick="selectPosition(4)">
+                    <span class="selection-number">#4</span>
+                    <span class="selection-label">Posisi Keempat</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="wheel-section">
+            <h1>🎡 Wheel of Names</h1>
+            
+            <div class="wheel-container">
+                <div class="pointer"></div>
+                <canvas id="wheelCanvas"></canvas>
+                <div class="center-circle">SPIN</div>
+            </div>
+
+            <button class="spin-button" id="spinButton">🎲 PUTAR RODA!</button>
+
+            <div class="winner-display" id="winnerDisplay"></div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalNames">0</div>
+                    <div class="stat-label">Total Nama</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSpins">0</div>
+                    <div class="stat-label">Total Putaran</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2>📝 Daftar Nama</h2>
+            
+            <div class="input-group">
+                <textarea id="nameInput" placeholder="Masukkan nama (satu per baris untuk paste banyak nama)..." rows="1"></textarea>
+                <button class="add-button" id="addButton">Tambah</button>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Cara Kerja:</strong><br>
+                1. Masukkan nama satu-per-satu, atau <strong>paste banyak nama sekaligus</strong> (satu nama per baris)<br>
+                2. <strong>Drag & drop</strong> untuk mengatur ulang posisi nama<br>
+                3. Klik "PUTAR RODA!" untuk memilih pemenang<br>
+                4. Hapus pemenang dengan tombol "Hapus" jika perlu
+            </div>
+
+            <div class="names-list" id="namesList"></div>
+
+            <button class="clear-all" id="clearButton">🗑️ Hapus Semua Nama</button>
+
+            <div class="winner-history">
+                <h2>🏆 Riwayat Pemenang</h2>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class WheelOfNames {
+            constructor() {
+                // Clear old localStorage data if any
+                localStorage.clear();
+                
+                this.names = [];
+                this.canvas = document.getElementById('wheelCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.spinning = false;
+                this.currentRotation = 0;
+                this.spinHistory = [];
+                this.totalSpins = 0;
+                this.winnerPosition = null; // Will be set by user selection (2 or 4)
+                
+                this.colors = [
+                    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
+                    '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+                    '#F8B500', '#FF1744', '#00E676', '#2979FF',
+                    '#FF9100', '#D500F9', '#00B8D4', '#76FF03'
+                ];
+
+                this.initCanvas();
+                this.setupEventListeners();
+                // Mulai dengan daftar kosong
+                this.updateDisplay();
+                this.updateStats();
+            }
+
+            initCanvas() {
+                const size = 600;
+                this.canvas.width = size;
+                this.canvas.height = size;
+                this.centerX = size / 2;
+                this.centerY = size / 2;
+                this.radius = size / 2 - 10;
+            }
+
+            setupEventListeners() {
+                const input = document.getElementById('nameInput');
+                
+                document.getElementById('addButton').addEventListener('click', () => this.addName());
+                
+                // Auto-resize textarea
+                input.addEventListener('input', () => {
+                    input.style.height = 'auto';
+                    input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+                });
+                
+                // Enter key handler - submit on Enter, but allow Shift+Enter for new line
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.addName();
+                    }
+                });
+                
+                // Auto-resize on paste
+                input.addEventListener('paste', () => {
+                    setTimeout(() => {
+                        input.style.height = 'auto';
+                        input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+                    }, 0);
+                });
+                
+                document.getElementById('spinButton').addEventListener('click', () => this.spin());
+                document.getElementById('clearButton').addEventListener('click', () => this.clearAll());
+            }
+
+            addName() {
+                const input = document.getElementById('nameInput');
+                const text = input.value.trim();
+                
+                if (!text) return;
+                
+                // Check apakah ada multiple lines (paste banyak nama sekaligus)
+                if (text.includes('\n')) {
+                    // Split by newline dan tambahkan semua nama
+                    const names = text.split('\n')
+                        .map(name => name.trim())
+                        .filter(name => name.length > 0); // Hapus baris kosong
+                    
+                    names.forEach(name => this.names.push(name));
+                    
+                    // Show notification
+                    const notification = document.createElement('div');
+                    notification.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #4CAF50;
+                        color: white;
+                        padding: 15px 25px;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                        font-weight: bold;
+                    `;
+                    notification.textContent = `✓ ${names.length} nama berhasil ditambahkan!`;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => notification.remove(), 3000);
+                } else {
+                    // Single name
+                    this.names.push(text);
+                }
+                
+                input.value = '';
+                input.style.height = 'auto'; // Reset height
+                this.updateDisplay();
+                input.focus();
+            }
+
+            removeName(index) {
+                this.names.splice(index, 1);
+                // RESET rotation agar wheel sync dengan list baru
+                this.currentRotation = 0;
+                this.updateDisplay();
+            }
+
+            clearAll() {
+                if (confirm('Hapus semua nama dari daftar?')) {
+                    this.names = [];
+                    this.currentRotation = 0;
+                    this.updateDisplay();
+                }
+            }
+
+            // Drag and Drop Handlers
+            handleDragStart(e, index) {
+                this.draggedIndex = index;
+                e.currentTarget.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
+            }
+
+            handleDragEnd(e) {
+                e.currentTarget.classList.remove('dragging');
+                
+                // Remove all drag-over classes
+                document.querySelectorAll('.name-item').forEach(item => {
+                    item.classList.remove('drag-over');
+                });
+            }
+
+            handleDragOver(e) {
+                if (e.preventDefault) {
+                    e.preventDefault(); // Allows drop
+                }
+                
+                e.dataTransfer.dropEffect = 'move';
+                
+                // Add visual feedback
+                const targetElement = e.currentTarget;
+                if (targetElement.classList.contains('name-item')) {
+                    targetElement.classList.add('drag-over');
+                }
+                
+                return false;
+            }
+
+            handleDrop(e, targetIndex) {
+                if (e.stopPropagation) {
+                    e.stopPropagation(); // Stops redirect
+                }
+
+                e.currentTarget.classList.remove('drag-over');
+
+                // Don't do anything if dropping on same position
+                if (this.draggedIndex !== targetIndex) {
+                    // Move item in array
+                    const draggedItem = this.names[this.draggedIndex];
+                    this.names.splice(this.draggedIndex, 1);
+                    
+                    // Adjust target index if dragged from above
+                    const newIndex = this.draggedIndex < targetIndex ? targetIndex - 1 : targetIndex;
+                    this.names.splice(newIndex, 0, draggedItem);
+                    
+                    // Reset rotation karena urutan berubah
+                    this.currentRotation = 0;
+                    
+                    // Update display
+                    this.updateDisplay();
+                    
+                    // Show notification
+                    this.showNotification(`📌 "${draggedItem}" dipindah ke posisi #${newIndex + 1}`);
+                }
+
+                return false;
+            }
+
+            handleDragLeave(e) {
+                e.currentTarget.classList.remove('drag-over');
+            }
+
+            showNotification(message) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #667eea;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    font-weight: bold;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.remove(), 2500);
+            }
+
+            updateDisplay() {
+                this.drawWheel();
+                this.updateNamesList();
+                this.updateStats();
+            }
+
+            updateNamesList() {
+                const list = document.getElementById('namesList');
+                list.innerHTML = '';
+
+                this.names.forEach((name, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'name-item';
+                    item.draggable = true;
+                    item.dataset.index = index;
+
+                    item.innerHTML = `
+                        <span class="drag-handle" style="cursor: move; margin-right: 10px; color: #999;">⋮⋮</span>
+                        <span class="name-number">#${index + 1}</span>
+                        <span class="name-text">${name}</span>
+                        <button class="remove-button" onclick="wheel.removeName(${index})">Hapus</button>
+                    `;
+                    
+                    // Drag events
+                    item.addEventListener('dragstart', (e) => this.handleDragStart(e, index));
+                    item.addEventListener('dragend', (e) => this.handleDragEnd(e));
+                    item.addEventListener('dragover', (e) => this.handleDragOver(e));
+                    item.addEventListener('drop', (e) => this.handleDrop(e, index));
+                    item.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                    
+                    list.appendChild(item);
+                });
+                
+                // Update "next winner" info
+                const nextWinnerEl = document.getElementById('nextWinner');
+                if (nextWinnerEl) {
+                    if (this.names.length >= 4) {
+                        nextWinnerEl.textContent = this.names[3];
+                        nextWinnerEl.style.color = '#ffc107';
+                        nextWinnerEl.style.fontWeight = 'bold';
+                    } else {
+                        nextWinnerEl.textContent = '(Kurang dari 4 nama)';
+                        nextWinnerEl.style.color = '#999';
+                    }
+                }
+            }
+
+            updateStats() {
+                document.getElementById('totalNames').textContent = this.names.length;
+                document.getElementById('totalSpins').textContent = this.totalSpins;
+            }
+
+            drawWheel() {
+                if (this.names.length === 0) {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    return;
+                }
+
+                const sliceAngle = (Math.PI * 2) / this.names.length;
+
+                this.names.forEach((name, index) => {
+                    const startAngle = this.currentRotation + (index * sliceAngle);
+                    const endAngle = startAngle + sliceAngle;
+                    const color = this.colors[index % this.colors.length];
+
+                    // Draw slice
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.centerX, this.centerY);
+                    this.ctx.arc(this.centerX, this.centerY, this.radius, startAngle, endAngle);
+                    this.ctx.closePath();
+                    this.ctx.fillStyle = color;
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.stroke();
+
+                    // Draw text
+                    this.ctx.save();
+                    this.ctx.translate(this.centerX, this.centerY);
+                    this.ctx.rotate(startAngle + sliceAngle / 2);
+                    this.ctx.textAlign = 'right';
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.font = 'bold 18px Arial';
+                    this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    this.ctx.shadowBlur = 3;
+                    this.ctx.fillText(name, this.radius - 20, 7);
+                    this.ctx.restore();
+                });
+                
+                // DEBUG: Gambar garis vertikal dari pointer untuk reference
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.centerX, this.centerY - this.radius - 30);
+                this.ctx.lineTo(this.centerX, this.centerY - this.radius + 30);
+                this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+
+            verifyWinnerPosition(winnerIndex) {
+                // Position verification (silent mode - no console logs)
+                const sliceAngle = (Math.PI * 2) / this.names.length;
+                const winnerStartAngle = this.currentRotation + (winnerIndex * sliceAngle);
+                const winnerMiddleAngle = winnerStartAngle + (sliceAngle / 2);
+                
+                let normalizedAngle = winnerMiddleAngle % (Math.PI * 2);
+                if (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                
+                const pointerAngle = (3 * Math.PI) / 2;
+                const angleDiff = Math.abs(normalizedAngle - pointerAngle);
+                
+                // Verification done silently
+            }
+
+            getWinnerIndex() {
+                // LOGIC UTAMA: Return index berdasarkan pilihan user (posisi #2 atau #4)
+                
+                if (this.names.length === 0) return -1;
+                
+                // Jika winnerPosition belum dipilih, return -1
+                if (!this.winnerPosition) return -1;
+                
+                if (this.winnerPosition === 2) {
+                    // Posisi #2 menang
+                    if (this.names.length >= 2) {
+                        return 1; // Index 1 = posisi ke-2
+                    } else {
+                        return 0; // Fallback ke posisi pertama
+                    }
+                } else if (this.winnerPosition === 4) {
+                    // Posisi #4 menang
+                    if (this.names.length >= 4) {
+                        return 3; // Index 3 = posisi ke-4
+                    } else {
+                        return this.names.length - 1; // Fallback ke posisi terakhir
+                    }
+                }
+                
+                return -1;
+            }
+
+            calculateTargetRotation(winnerIndex) {
+                const sliceAngle = (Math.PI * 2) / this.names.length;
+                const winnerMiddleAt0 = (winnerIndex * sliceAngle) + (sliceAngle / 2);
+                const pointerAngle = (3 * Math.PI) / 2;
+                
+                const rotationNeeded = pointerAngle - winnerMiddleAt0;
+                const extraSpins = 5;
+                const totalRotation = -(extraSpins * Math.PI * 2) + rotationNeeded;
+                
+                return totalRotation;
+            }
+
+            spin() {
+                if (this.spinning || this.names.length === 0) return;
+
+                this.spinning = true;
+                this.totalSpins++;
+                document.getElementById('spinButton').disabled = true;
+                document.getElementById('winnerDisplay').innerHTML = '';
+
+                // Rotation should already be 0 (reset after removing name)
+                // But set explicitly to be safe
+                this.currentRotation = 0;
+                this.drawWheel();
+
+                // Dapatkan index pemenang (selalu posisi ke-4)
+                const winnerIndex = this.getWinnerIndex();
+                const winnerName = this.names[winnerIndex];
+
+                // Hitung target rotasi dari 0
+                const targetRotation = this.calculateTargetRotation(winnerIndex);
+
+                // Animasi spin
+                const duration = 5000; // 5 detik
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const currentTime = Date.now();
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    // Easing function untuk efek deselerasi
+                    const easeOut = 1 - Math.pow(1 - progress, 4);
+
+                    // Hitung rotasi dari 0 ke target
+                    this.currentRotation = targetRotation * easeOut;
+                    this.drawWheel();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // FORCE final position to exact target
+                        this.currentRotation = targetRotation;
+                        this.drawWheel();
+                        
+                        // Verify position (silent)
+                        this.verifyWinnerPosition(winnerIndex);
+                        
+                        this.onSpinComplete(winnerName, winnerIndex);
+                    }
+                };
+
+                animate();
+            }
+
+            onSpinComplete(winnerName, winnerIndex) {
+                this.spinning = false;
+                document.getElementById('spinButton').disabled = false;
+
+                // Tampilkan pemenang
+                const display = document.getElementById('winnerDisplay');
+                display.innerHTML = `
+                    <div class="winner-text">
+                        🎉 PEMENANG: ${winnerName} 🎉
+                        <br>
+                        <span style="font-size: 0.55em; color: #667eea; margin-top: 10px; display: block;">
+                            💡 Hapus "${winnerName}" dari daftar, lalu spin lagi!
+                        </span>
+                    </div>
+                `;
+
+                // Tambah ke history
+                this.addToHistory(winnerName, winnerIndex + 1);
+
+                // Konfeti effect
+                this.createConfetti();
+
+                // Update stats
+                this.updateStats();
+            }
+
+            addToHistory(name, position) {
+                const time = new Date().toLocaleTimeString('id-ID');
+                this.spinHistory.unshift({ name, position, time });
+                
+                // Batasi history hanya 10 terakhir
+                if (this.spinHistory.length > 10) {
+                    this.spinHistory = this.spinHistory.slice(0, 10);
+                }
+
+                this.updateHistory();
+            }
+
+            updateHistory() {
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '';
+
+                if (this.spinHistory.length === 0) {
+                    historyList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Belum ada riwayat</p>';
+                    return;
+                }
+
+                this.spinHistory.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.innerHTML = `
+                        <strong>${item.name}</strong>
+                        <br>
+                        <small style="color: #999;">${item.time}</small>
+                    `;
+                    historyList.appendChild(div);
+                });
+            }
+
+            createConfetti() {
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                const confettiCount = 50;
+
+                for (let i = 0; i < confettiCount; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = Math.random() * window.innerWidth + 'px';
+                        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        confetti.style.animationDelay = Math.random() * 0.3 + 's';
+                        document.body.appendChild(confetti);
+
+                        setTimeout(() => confetti.remove(), 3000);
+                    }, i * 30);
+                }
+            }
+        }
+
+        // Inisialisasi wheel
+        // Global wheel instance
+        let wheel = null;
+
+        // Function to select winner position
+        function selectPosition(position) {
+            // Hide modal
+            document.getElementById('selectionModal').classList.add('hidden');
+            
+            // Create wheel instance if not exists
+            if (!wheel) {
+                wheel = new WheelOfNames();
+            }
+            
+            // Set winner position
+            wheel.winnerPosition = position;
+            
+            // Show notification
+            const positionText = position === 2 ? 'kedua (#2)' : 'keempat (#4)';
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-weight: bold;
+                font-size: 1.1em;
+                animation: slideIn 0.4s ease;
+            `;
+            notification.innerHTML = `✅ Posisi ${positionText} akan selalu menang!`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
