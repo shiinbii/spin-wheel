@@ -1202,31 +1202,6 @@
             }
             
             wheel.winnerPosition = position;
-            
-            const positionText = position === 2 ? 'kedua (#2)' : 'keempat (#4)';
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px 30px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                z-index: 10001;
-                font-weight: bold;
-                font-size: 1.1em;
-                animation: slideIn 0.4s ease;
-            `;
-            notification.innerHTML = `✅ Posisi ${positionText} akan selalu menang!`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transition = 'opacity 0.3s';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
         }
     </script>
 </body>
